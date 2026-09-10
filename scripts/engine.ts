@@ -47,7 +47,21 @@ export function engineTarball(dest: string): string {
     }
     const pkg = enginePackage(checkout);
     mkdirSync(dest, { recursive: true });
-    run(["bun", "pm", "pack", "--ignore-scripts", "--destination", dest], pkg);
+    // `build` compiles the audio WASM and prepack copies in the shipped `examples/`, as a publish does.
+    // The build's later native-host step needs system webview libraries a bench seat may lack; the
+    // tarball ships that crate as source, so only the audio WASM is required here.
+    if (!existsSync(join(checkout, "node_modules"))) run(["bun", "install"], checkout);
+    const wasm = ["rust/audio/pkg", "crates/audio/pkg"]
+        .map((d) => join(pkg, d, "shallot_audio.wasm"))
+        .find(existsSync);
+    if (!wasm) {
+        Bun.spawnSync(["bun", "run", "build"], { cwd: checkout, stdout: "pipe", stderr: "pipe" });
+        const built = ["rust/audio/pkg", "crates/audio/pkg"].some((d) =>
+            existsSync(join(pkg, d, "shallot_audio.wasm")),
+        );
+        if (!built) throw new Error(`engine build at ${engineTag} produced no audio WASM`);
+    }
+    run(["bun", "pm", "pack", "--destination", dest], pkg);
     const tgz = readdirSync(dest).find((f) => f.endsWith(".tgz") && !f.startsWith("."));
     if (!tgz) throw new Error(`no tarball produced in ${dest}`);
     return join(dest, tgz);
