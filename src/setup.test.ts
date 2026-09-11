@@ -3,15 +3,16 @@
 // Invariant: the --bare arm strips AGENTS.md from the tarball (not just
 // examples/). stripTarball removes it with an rmSync.
 //
-// stripTarball is hermetic (untar → delete → re-tar in a temp dir), so this arm builds a
-// fixture tree containing package/AGENTS.md and package/examples/,
-// tars it, runs the real exported function, untars the result, and asserts the stripped
-// files are gone. No grep over source text — this is a behavioral test of the actual function.
+// stripTarball is hermetic (untar → delete → re-tar in a temp dir), so each arm builds a
+// fixture tree containing package/AGENTS.md and package/examples/, tars it, runs the real exported
+// function, untars the result, and asserts the stripped files are gone. No grep over source text —
+// these are behavioral tests of the actual function.
 
-import { expect, test } from "bun:test";
+import { expect } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { check } from "@dylanebert/shallot/harness/check";
 import { stripTarball } from "./setup";
 
 function buildFixtureTarball(): string {
@@ -36,56 +37,80 @@ function untarTo(tgz: string, dest: string): void {
     if (tar.exitCode !== 0) throw new Error(`fixture untar failed: ${tar.stderr}`);
 }
 
-test("stripTarball — removes AGENTS.md from the tarball", () => {
-    const tgz = buildFixtureTarball();
-    try {
-        stripTarball(tgz);
-        const dest = mkdtempSync(join(tmpdir(), "shallot-setup-arm-check-"));
+check(
+    "stripTarball — removes AGENTS.md from the tarball",
+    {
+        claim: "bare setup removes AGENTS.md from the installed tarball",
+        size: "integration",
+        subject: "src/setup.ts",
+    },
+    () => {
+        const tgz = buildFixtureTarball();
         try {
-            untarTo(tgz, dest);
-            expect(existsSync(join(dest, "package/AGENTS.md"))).toBe(false);
+            stripTarball(tgz);
+            const dest = mkdtempSync(join(tmpdir(), "shallot-setup-arm-check-"));
+            try {
+                untarTo(tgz, dest);
+                expect(existsSync(join(dest, "package/AGENTS.md"))).toBe(false);
+            } finally {
+                rmSync(dest, { recursive: true, force: true });
+            }
         } finally {
-            rmSync(dest, { recursive: true, force: true });
+            rmSync(tgz, { force: true });
+            rmSync(join(tmpdir(), "shallot-setup-arm-untar-"), { recursive: true, force: true });
         }
-    } finally {
-        rmSync(tgz, { force: true });
-        rmSync(join(tmpdir(), "shallot-setup-arm-untar-"), { recursive: true, force: true });
-    }
-});
+    },
+);
 
-test("stripTarball — removes examples/ from the tarball", () => {
-    const tgz = buildFixtureTarball();
-    try {
-        stripTarball(tgz);
-        const dest = mkdtempSync(join(tmpdir(), "shallot-setup-arm-check-"));
+check(
+    "stripTarball — removes examples/ from the tarball",
+    {
+        claim: "bare setup removes examples from the installed tarball",
+        size: "integration",
+        subject: "src/setup.ts",
+    },
+    () => {
+        const tgz = buildFixtureTarball();
         try {
-            untarTo(tgz, dest);
-            expect(existsSync(join(dest, "package/examples"))).toBe(false);
+            stripTarball(tgz);
+            const dest = mkdtempSync(join(tmpdir(), "shallot-setup-arm-check-"));
+            try {
+                untarTo(tgz, dest);
+                expect(existsSync(join(dest, "package/examples"))).toBe(false);
+            } finally {
+                rmSync(dest, { recursive: true, force: true });
+            }
         } finally {
-            rmSync(dest, { recursive: true, force: true });
+            rmSync(tgz, { force: true });
+            rmSync(join(tmpdir(), "shallot-setup-arm-untar-"), { recursive: true, force: true });
         }
-    } finally {
-        rmSync(tgz, { force: true });
-        rmSync(join(tmpdir(), "shallot-setup-arm-untar-"), { recursive: true, force: true });
-    }
-});
+    },
+);
 
-test("stripTarball — preserves the code files (does not over-strip)", () => {
-    const tgz = buildFixtureTarball();
-    try {
-        stripTarball(tgz);
-        const dest = mkdtempSync(join(tmpdir(), "shallot-setup-arm-check-"));
+check(
+    "stripTarball — preserves the code files (does not over-strip)",
+    {
+        claim: "bare setup preserves code files in the installed tarball",
+        size: "integration",
+        subject: "src/setup.ts",
+    },
+    () => {
+        const tgz = buildFixtureTarball();
         try {
-            untarTo(tgz, dest);
-            expect(existsSync(join(dest, "package/index.ts"))).toBe(true);
-            expect(readFileSync(join(dest, "package/index.ts"), "utf8").trim()).toBe(
-                "export const x = 1;",
-            );
+            stripTarball(tgz);
+            const dest = mkdtempSync(join(tmpdir(), "shallot-setup-arm-check-"));
+            try {
+                untarTo(tgz, dest);
+                expect(existsSync(join(dest, "package/index.ts"))).toBe(true);
+                expect(readFileSync(join(dest, "package/index.ts"), "utf8").trim()).toBe(
+                    "export const x = 1;",
+                );
+            } finally {
+                rmSync(dest, { recursive: true, force: true });
+            }
         } finally {
-            rmSync(dest, { recursive: true, force: true });
+            rmSync(tgz, { force: true });
+            rmSync(join(tmpdir(), "shallot-setup-arm-untar-"), { recursive: true, force: true });
         }
-    } finally {
-        rmSync(tgz, { force: true });
-        rmSync(join(tmpdir(), "shallot-setup-arm-untar-"), { recursive: true, force: true });
-    }
-});
+    },
+);
