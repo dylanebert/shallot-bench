@@ -14,7 +14,7 @@
     },
     "devDependencies": {
         "@biomejs/biome": "^2.5.13",
-        "@dylanebert/shallot": "github:dylanebert/shallot#991c1e3f5ccec9de3c059e996bef27896c326971",
+        "@dylanebert/shallot": "github:dylanebert/shallot#d0189618358253e680c450c936c5e3f93fee620c",
         "@types/bun": "^1.4.2",
         "typescript": "^7.0.2"
     }
