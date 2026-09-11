@@ -1,1 +1,1 @@
-preload = ["./node_modules/@dylanebert/shallot/src/harness/preload.ts"]
+preload = ["@dylanebert/shallot/harness/preload"]
