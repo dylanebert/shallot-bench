@@ -13,7 +13,7 @@ bun install
 bun run list
 bun run check
 bun run test
-bun run test:integration -- --base <base-ref> --diff <head-ref>
+bun run test -- --integration -- --base <base-ref> --diff <head-ref>
 ```
 
 The three setup integrations are selected only when the root-law subject `src/setup.ts` changes in its complete token stream. Comment-only edits do not select them. Regenerate the committed hosted workflow with `bun run workflow`; `bun run check` refuses workflow drift.

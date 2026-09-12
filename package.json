@@ -9,12 +9,11 @@
         "list": "shallot list",
         "workflow": "shallot workflow",
         "test": "shallot test",
-        "check": "tsc --noEmit && biome check && shallot check",
-        "test:integration": "shallot test:integration"
+        "check": "tsc --noEmit && biome check && shallot check"
     },
     "devDependencies": {
         "@biomejs/biome": "^2.5.13",
-        "@dylanebert/shallot": "github:dylanebert/shallot#d0189618358253e680c450c936c5e3f93fee620c",
+        "@dylanebert/shallot": "github:dylanebert/shallot#83ee2a918d26a5868d0b703c94a1b7cbf5f28c30",
         "@types/bun": "^1.4.2",
         "typescript": "^7.0.2"
     }
