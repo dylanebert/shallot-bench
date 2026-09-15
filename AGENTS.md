@@ -18,7 +18,7 @@ gates into a second engine-correctness population, or infer model capability fro
   empty-cache `bun install --force --frozen-lockfile --cache-dir <cache>`, prove a non-producer
   realpath and the candidate identity, rerun the focused gate, and unlink the producer when finished.
 - Source staging is the persisted dev dependency and lock resolution
-  `github:dylanebert/shallot#70770cfc34d82fdd19cb705d8753bb6f093748d6`. Both manifest and lock must
+  `github:dylanebert/shallot#0664218f465224397b80aeb604b51178ac71cfb2`. Both manifest and lock must
   carry the complete SHA; frozen installs use a newly empty explicit cache.
 - The local pack made by `bun run setup` is **artifact preflight**, not source staging. It is produced
   from that source commit, installed only in the out-of-tree task app, and recorded in `.eval.json`

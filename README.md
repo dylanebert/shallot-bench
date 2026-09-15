@@ -28,7 +28,7 @@ streams. Comment-only edits do not select them. Regenerate the committed hosted 
 `bun run workflow`; `bun run check` refuses workflow drift.
 
 The carrier is pinned as a dev-only dependency to Shallot source commit
-`70770cfc34d82fdd19cb705d8753bb6f093748d6`. After `bun install`, these surface commands use the
+`0664218f465224397b80aeb604b51178ac71cfb2`. After `bun install`, these surface commands use the
 installed `shallot` bin and do not clone an engine.
 
 ## The Contract
