@@ -1,5 +1,5 @@
-// Set up one task's project: pack the engine at the pinned tag, scaffold a fresh project with
-// `create-shallot` at its published version, install the packed tarball, and drop the task's PROMPT.md
+// Set up one task's project: pack the qualified source candidate as a local artifact preflight,
+// scaffold a fresh project with the landed S1 create-shallot contract, install that artifact, and drop the task's PROMPT.md
 // in. The project lands in an out-of-tree temp dir so the agent that works there sees only what ships
 // on npm (`node_modules/@dylanebert/shallot`) and cannot read the engine source. The withheld gate
 // stays in this repo; it is never copied into the project. Prints the project dir on the last line.
@@ -13,10 +13,8 @@
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { engineTag, engineTarball, root } from "../scripts/engine";
-
-/** create-shallot's published version; the scaffold a real user gets from `bunx create-shallot` */
-const CREATE_SHALLOT = "create-shallot@0.9.5";
+import { engineArtifact, root } from "../scripts/engine";
+import { scaffoldArtifact } from "../scripts/scaffold";
 
 function run(cmd: string[], cwd: string): { ok: boolean; out: string } {
     const p = Bun.spawnSync(cmd, { cwd, stdout: "pipe", stderr: "pipe" });
@@ -67,13 +65,18 @@ function main(): void {
     const work = realpathSync(mkdtempSync(join(tmpdir(), `shallot-bench-${task}-`)));
     const proj = join(work, "app");
 
-    const engineTgz = engineTarball(join(work, "engine-pack"));
+    const artifact = engineArtifact(join(work, "engine-pack"));
+    const engineTgz = artifact.path;
     if (bare) stripTarball(engineTgz);
 
-    const scaffold = run(["bunx", CREATE_SHALLOT, "app"], work);
+    const scaffoldPack = scaffoldArtifact(join(work, "scaffold-pack"));
+    const scaffold = run(
+        ["bun", "x", "--package", scaffoldPack.path, "create-shallot", "app"],
+        work,
+    );
     if (!scaffold.ok) throw new Error(`create-shallot failed:\n${scaffold.out}`);
 
-    // a real user installs the published engine; the packed tarball stands in for it
+    // A real user installs the published engine; this temporary local pack is artifact preflight only.
     const pkg = JSON.parse(readFileSync(join(proj, "package.json"), "utf8"));
     pkg.dependencies["@dylanebert/shallot"] = `file:${engineTgz}`;
     writeFileSync(join(proj, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
@@ -90,11 +93,38 @@ function main(): void {
     writeFileSync(join(proj, "PROMPT.md"), readFileSync(promptPath));
     writeFileSync(
         join(proj, ".bench.json"),
-        `${JSON.stringify({ task, bare, engine: engineTag, created: new Date().toISOString() }, null, 2)}\n`,
+        `${JSON.stringify(
+            {
+                task,
+                bare,
+                engine: artifact.sourceCommit,
+                artifact: {
+                    kind: "local-pack-preflight",
+                    sourceCommit: artifact.sourceCommit,
+                    sha256: artifact.sha256,
+                },
+                scaffold: {
+                    kind: "s1-scaffold-pack-preflight",
+                    sourceCommit: scaffoldPack.sourceCommit,
+                    sha256: scaffoldPack.sha256,
+                },
+                created: new Date().toISOString(),
+            },
+            null,
+            2,
+        )}\n`,
     );
 
     if (asJson) {
-        console.log(JSON.stringify({ task, engine: engineTag, project: proj, work }));
+        console.log(
+            JSON.stringify({
+                task,
+                engine: artifact.sourceCommit,
+                artifactSha256: artifact.sha256,
+                project: proj,
+                work,
+            }),
+        );
     } else {
         console.error(`task ${task}: project ready. Agent works with cwd = the path below.`);
         console.log(proj);

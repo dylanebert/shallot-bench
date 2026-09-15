@@ -1,5 +1,5 @@
 // Pure derivation of a graded task's result kind from its three determined inputs — typecheck ok,
-// build ok, gate ok. No side effects, no @playwright/test import: `grade.ts` is a top-level script
+// build ok, gate ok. No side effects or browser-driver imports: `grade.ts` is a top-level script
 // (argv parsing, top-level await) that can never be imported by an arm, so this sibling module is
 // what a test imports and calls directly instead of reading `grade.ts`'s source as an AST.
 //
