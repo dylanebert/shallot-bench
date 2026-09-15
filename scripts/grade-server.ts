@@ -63,7 +63,7 @@ const server = Bun.serve({
     port,
     async fetch(request) {
         const url = new URL(request.url);
-        if (url.pathname === "/__shallot_bench_probe.js") {
+        if (url.pathname === "/__shallot_eval_probe.js") {
             return new Response(probe, {
                 headers: {
                     "content-type": "text/javascript; charset=utf-8",
@@ -78,16 +78,16 @@ const server = Bun.serve({
         if (!upstream.headers.get("content-type")?.includes("text/html")) return upstream;
         const html = await upstream.text();
         const injection =
-            "<script>globalThis.__shallotBenchTask = " +
+            "<script>globalThis.__shallotEvalTask = " +
             JSON.stringify(task) +
-            '</script><script type="module" src="/__shallot_bench_probe.js"></script>';
+            '</script><script type="module" src="/__shallot_eval_probe.js"></script>';
         return new Response(html.replace("</body>", `${injection}</body>`), {
             status: upstream.status,
             headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
         });
     },
 });
-console.log(`shallot bench grade server listening on ${server.port}`);
+console.log(`shallot eval grade server listening on ${server.port}`);
 
 async function stop(): Promise<void> {
     server.stop(true);

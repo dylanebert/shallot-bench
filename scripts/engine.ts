@@ -3,18 +3,18 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:f
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-// Source staging and grading artifact preflight are deliberately different states. The bench's
-// persisted carrier is the full-SHA Git identity in package.json/bun.lock. A setup run may pack that
-// exact source into a temporary directory so the generated app sees only installed package bytes; that
-// tarball is an artifact preflight, never the bench's staged dependency.
+// Source staging and grading artifact preflight are deliberately different states. Eval's persisted
+// carrier is the full-SHA Git identity in package.json/bun.lock. A setup run may pack that exact source
+// into a temporary directory so the generated app sees only installed package bytes; that tarball is
+// an artifact preflight, never Eval's staged dependency.
 const REPO = "https://github.com/dylanebert/shallot";
 export const engineSourceCommit = "70770cfc34d82fdd19cb705d8753bb6f093748d6";
 
-/** the bench repo root */
+/** the Eval repository root */
 export const root = resolve(import.meta.dir, "..");
 
 /** the temporary source checkout used only to produce the grading artifact */
-export const engineRoot = join(tmpdir(), "shallot-bench-engine");
+export const engineRoot = join(tmpdir(), "shallot-eval-engine");
 
 const source = JSON.parse(readFileSync(resolve(root, "engine.json"), "utf8")) as {
     source?: string;
