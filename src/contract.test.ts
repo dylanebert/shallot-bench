@@ -10,7 +10,7 @@ const CANDIDATE = "70770cfc34d82fdd19cb705d8753bb6f093748d6";
 check(
     "installed candidate identity and public capture export",
     {
-        claim: "the bench installs the qualified candidate and public frame seam",
+        claim: "Eval installs the qualified candidate and public frame seam",
         size: "integration",
         subject: "package.json",
     },
@@ -22,8 +22,11 @@ check(
         const declared = manifest.devDependencies["@dylanebert/shallot"];
         expect(declared).toBe(`github:dylanebert/shallot#${CANDIDATE}`);
         expect(lock).toContain(declared);
-        expect(realpathSync(resolve(ROOT, "node_modules/@dylanebert/shallot"))).not.toContain(
-            "/shallot-s2-candidate",
+        const nodeModules = realpathSync(resolve(ROOT, "node_modules"));
+        const installed = realpathSync(resolve(ROOT, "node_modules/@dylanebert/shallot"));
+        expect(installed.startsWith(`${nodeModules}/`)).toBe(true);
+        expect(JSON.parse(readFileSync(resolve(installed, "package.json"), "utf8")).name).toBe(
+            "@dylanebert/shallot",
         );
         expect(typeof captureFrame).toBe("function");
     },

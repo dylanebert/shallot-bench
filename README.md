@@ -1,12 +1,19 @@
-# shallot-bench
+# shallot-eval
 
-Can a fresh coding agent build a game with Shallot using only what ships on npm? Each task is a small problem a user would ask for. Setup builds an isolated project, an agent works in it, and a withheld gate grades the result by driving the running app.
+Can a stock coding agent compose Shallot from the shipped package and complete a small user-shaped
+task? Each task has a with-context arm and a without-context arm. Setup builds an isolated project, an
+agent works in it, and a withheld gate grades the result through Shallot's public observation and
+capture exports. This repository owns the task prompts, arms, withheld expectations, invocation
+records, and outcomes. Shallot owns engine correctness and the mechanism that establishes it.
 
-The number that matters is task completion with and without the context the engine ships (its `examples/` corpus and agent docs), measured per engine source identity. `engine.json` pins the qualified source commit.
+`engine.json` pins the qualified source commit used for the installed package artifact preflight. A
+single run does not produce a score, aggregate, model-capability conclusion, or comparative claim.
 
 ## Surface Commands
 
-The repository admits eight checks through the installed Shallot carrier: three hermetic result units, three tar/filesystem setup integrations, and two package/frame contract integrations. The default surface never runs task setup, task grading, a browser, or an engine clone.
+The repository admits eight checks through the installed Shallot carrier: three hermetic result units,
+three tar/filesystem setup integrations, and two package/frame contract integrations. The default
+surface never runs task setup, task grading, a browser, or an engine clone.
 
 ```bash
 bun install
@@ -16,16 +23,32 @@ bun run test
 bun run test -- --integration --base <base-ref> --diff <head-ref>
 ```
 
-The setup integrations are selected only when their declared subjects change in their complete token streams. Comment-only edits do not select them. Regenerate the committed hosted workflow with `bun run workflow`; `bun run check` refuses workflow drift.
+The setup integrations are selected only when their declared subjects change in their complete token
+streams. Comment-only edits do not select them. Regenerate the committed hosted workflow with
+`bun run workflow`; `bun run check` refuses workflow drift.
 
-The carrier is pinned as a dev-only dependency to Shallot source commit `70770cfc34d82fdd19cb705d8753bb6f093748d6`. After `bun install`, these surface commands use the installed `shallot` bin and do not clone an engine.
+The carrier is pinned as a dev-only dependency to Shallot source commit
+`70770cfc34d82fdd19cb705d8753bb6f093748d6`. After `bun install`, these surface commands use the
+installed `shallot` bin and do not clone an engine.
 
 ## The Contract
 
-- **The agent never sees the gate.** `tasks/<task>/gate.ts` and `NOTES.md` stay here. Setup copies only `PROMPT.md` into the project.
-- **Isolation is an artifact preflight in a temp dir.** Setup packs the qualified source commit into a temporary tarball, records its source SHA and tar SHA-256, and installs it into a fresh `create-shallot` project under the OS temp dir. The agent sees only `node_modules/@dylanebert/shallot`, and no engine source. This local pack is not the repository's source-staged identity.
-- **Gates assert positive behavior**, never just the absence of errors. Each one drives the canvas (pixels, synthetic input) and checks the task's claim holds.
-- **Surface cadence is separate from task gates.** `test` runs only the three result units. The five integration rows run only through subject selection or an explicit carrier row selector. Task setup and grading remain explicit commands and are not default checks.
+- **The agent never sees the gate.** `tasks/<task>/gate.ts` and `NOTES.md` stay here. Setup copies
+  only `PROMPT.md` into the isolated project.
+- **Isolation is an artifact preflight in a temp dir.** Setup packs the qualified source commit into
+  a temporary tarball, records its source SHA and tar SHA-256, and installs it into a fresh
+  `create-shallot` project under the OS temp dir. The agent sees only the installed
+  `node_modules/@dylanebert/shallot` package and the context selected by its arm. It cannot use the
+  source checkout as evidence. This local pack is not the repository's source-staged identity.
+- **Gates assert positive behavior.** Each one drives the canvas, sends synthetic input where needed,
+  and checks the task claim. The withheld task files remain outside the generated project.
+- **Public instrumentation owns observation.** Grading runs the project's independent check/build
+  gates, then uses the installed Shallot `runBrowserCheck` and `captureFrame` public contracts. Eval
+  does not copy a browser driver or capture transport. A task failure is `FAIL`; missing or unusable
+  public instrumentation is `INCOMPLETE`, not a pass.
+- **Surface cadence is separate from task gates.** `test` runs only the three result units. The five
+  integration rows run only through subject selection or an explicit carrier row selector. Task
+  setup and grading remain explicit commands and are not default checks.
 
 ## Tasks
 
@@ -43,10 +66,15 @@ The carrier is pinned as a dev-only dependency to Shallot source commit `70770cf
 ```bash
 bun install
 bun run setup red-box          # prints the project dir on the last line
-# an agent works in that dir with PROMPT.md and the installed engine
+# an agent works in that dir with PROMPT.md and the installed package
 bun run grade red-box <projectDir>
 ```
 
-`--bare` sets up the without-context arm: the tarball loses `examples/` and `AGENTS.md`, and the scaffold's agent docs lose their pointer to them. Run a task with and without it to get the delta. `--json` prints the task, project, candidate source identity, runtime seat and artifact identity.
+`--bare` sets up the without-context arm: the tarball loses `examples/` and `AGENTS.md`, and the
+scaffold's agent docs lose their pointer to them. Run a task with and without it to observe the two
+arms. `--json` prints the task, candidate source identity, runtime seat, and artifact identity.
 
-Grading runs the project's independent check/build gates, then uses the installed Shallot `runBrowserCheck` and `captureFrame` public contract. The withheld task claims stay in this repository; the temporary probe is injected only for the run. The browser seat and fixed `final-canvas 1280x720@1 rgba8-tight` identity travel with the verdict, and fallback or missing GPU/Chromium premises refuse rather than pass.
+The browser seat and fixed `final-canvas 1280x720@1 rgba8-tight` identity travel with the verdict.
+Fallback or missing GPU/Chromium premises refuse rather than pass. An agent stall is a product
+discoverability finding for Shallot's public API, CLI, examples, or docs, not evidence of an internal
+engine defect.

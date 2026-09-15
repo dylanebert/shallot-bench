@@ -1,8 +1,8 @@
 // Set up one task's project: pack the qualified source candidate as a local artifact preflight,
-// scaffold a fresh project with the landed S1 create-shallot contract, install that artifact, and drop the task's PROMPT.md
-// in. The project lands in an out-of-tree temp dir so the agent that works there sees only what ships
-// on npm (`node_modules/@dylanebert/shallot`) and cannot read the engine source. The withheld gate
-// stays in this repo; it is never copied into the project. Prints the project dir on the last line.
+// scaffold a fresh project with the landed S1 create-shallot contract, install that artifact, and
+// drop the task's PROMPT.md in. The project lands in an out-of-tree temp dir so the agent sees only
+// the selected public package/context; it cannot read the engine source. The withheld gate and notes
+// stay in this repository and are never copied into the project. Prints the project dir last.
 //
 // `--bare` sets up the without-context arm of the shipped-context delta: the shipped `examples/` corpus
 // and AGENTS.md are removed from the tarball and the scaffold's agent docs lose the section pointing at
@@ -25,7 +25,7 @@ function run(cmd: string[], cwd: string): { ok: boolean; out: string } {
 // Deleting it only from `node_modules` doesn't hold: `bun add` re-resolves the `file:` dep and
 // re-extracts the tarball. Untar, delete, re-tar in place at the same path.
 export function stripTarball(tgz: string): void {
-    const ex = mkdtempSync(join(tmpdir(), "shallot-bench-untar-"));
+    const ex = mkdtempSync(join(tmpdir(), "shallot-eval-untar-"));
     const out = run(["tar", "-xzf", tgz, "-C", ex], ex);
     if (!out.ok) throw new Error(`untar ${tgz} failed:\n${out.out}`);
     rmSync(join(ex, "package/examples"), { recursive: true, force: true });
@@ -62,7 +62,7 @@ function main(): void {
     }
 
     // realpath: macOS tmpdir is a symlink; vite's fs.allow prefix check needs the resolved form
-    const work = realpathSync(mkdtempSync(join(tmpdir(), `shallot-bench-${task}-`)));
+    const work = realpathSync(mkdtempSync(join(tmpdir(), `shallot-eval-${task}-`)));
     const proj = join(work, "app");
 
     const artifact = engineArtifact(join(work, "engine-pack"));
@@ -92,7 +92,7 @@ function main(): void {
 
     writeFileSync(join(proj, "PROMPT.md"), readFileSync(promptPath));
     writeFileSync(
-        join(proj, ".bench.json"),
+        join(proj, ".eval.json"),
         `${JSON.stringify(
             {
                 task,

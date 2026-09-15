@@ -315,7 +315,7 @@ async function stripedMaterial(): Promise<void> {
 
 async function run(): Promise<{ ok: boolean; checks: Assertion[]; capture: string }> {
     await waitForCanvas();
-    const task = (globalThis as { __shallotBenchTask?: string }).__shallotBenchTask;
+    const task = (globalThis as { __shallotEvalTask?: string }).__shallotEvalTask;
     if (task === "red-box") await redBox();
     else if (task === "falling-box") await fallingBox();
     else if (task === "orbit-on-drag") await orbitOnDrag();
@@ -332,6 +332,7 @@ async function run(): Promise<{ ok: boolean; checks: Assertion[]; capture: strin
 
 void waitForCanvas().then(() => {
     const existing = window.__harness;
+    // Only the installed public capture contract is used; Eval supplies no replacement transport.
     window.__harness = {
         ready: true,
         run,

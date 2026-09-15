@@ -1,4 +1,4 @@
-// S3 arm — evals/setup.ts stripTarball
+// Eval arm — setup.ts stripTarball
 //
 // Invariant: the --bare arm strips AGENTS.md from the tarball (not just
 // examples/). stripTarball removes it with an rmSync.
