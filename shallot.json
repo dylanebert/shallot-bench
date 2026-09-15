@@ -1,4 +1,8 @@
 {
     "$schema": "https://raw.githubusercontent.com/dylanebert/shallot/main/shallot.schema.json",
-    "check": [{ "file": "src/grade.test.ts" }, { "file": "src/setup.test.ts" }]
+    "check": [
+        { "file": "src/contract.test.ts" },
+        { "file": "src/grade.test.ts" },
+        { "file": "src/setup.test.ts" }
+    ]
 }

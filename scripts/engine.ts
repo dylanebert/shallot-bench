@@ -1,25 +1,29 @@
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-// Clones dylanebert/shallot at the tag `engine.json` pins into the ignored `.engine/`, packs it,
-// and returns the tarball path. The bench reaches the engine only through this tarball, the way an
-// npm user does; nothing here reads the engine by relative path.
-// Precedent: shallot-site's `scripts/engine-checkout.ts`.
-//
-// Run: `bun run scripts/engine.ts` prints the tarball path.
-
+// Source staging and grading artifact preflight are deliberately different states. The bench's
+// persisted carrier is the full-SHA Git identity in package.json/bun.lock. A setup run may pack that
+// exact source into a temporary directory so the generated app sees only installed package bytes; that
+// tarball is an artifact preflight, never the bench's staged dependency.
 const REPO = "https://github.com/dylanebert/shallot";
+export const engineSourceCommit = "70770cfc34d82fdd19cb705d8753bb6f093748d6";
 
 /** the bench repo root */
 export const root = resolve(import.meta.dir, "..");
 
-/** the engine checkout, one directory per tag */
-export const engineRoot = resolve(root, ".engine");
+/** the temporary source checkout used only to produce the grading artifact */
+export const engineRoot = join(tmpdir(), "shallot-bench-engine");
 
-/** the engine tag `engine.json` pins */
-export const engineTag: string = (
-    JSON.parse(readFileSync(resolve(root, "engine.json"), "utf8")) as { tag: string }
-).tag;
+const source = JSON.parse(readFileSync(resolve(root, "engine.json"), "utf8")) as {
+    source?: string;
+};
+if (source.source !== `github:dylanebert/shallot#${engineSourceCommit}`) {
+    throw new Error(
+        `engine.json must name the qualified source candidate github:dylanebert/shallot#${engineSourceCommit}`,
+    );
+}
 
 function run(cmd: string[], cwd: string): void {
     const p = Bun.spawnSync(cmd, { cwd, stdout: "pipe", stderr: "pipe" });
@@ -28,43 +32,61 @@ function run(cmd: string[], cwd: string): void {
     }
 }
 
-/** the engine package inside the checkout: the repo root, or `packages/shallot` before the hoist */
+/** the engine package inside the checkout: the repo root, or packages/shallot before the hoist */
 function enginePackage(checkout: string): string {
     const nested = resolve(checkout, "packages/shallot");
     return existsSync(resolve(nested, "package.json")) ? nested : checkout;
 }
 
-/** Clone the pinned tag (once per tag), pack it into `dest`, and return the tarball path. */
-export function engineTarball(dest: string): string {
-    const checkout = join(engineRoot, engineTag);
+function sha256(path: string): string {
+    return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+/** Pack the exact qualified source for grading isolation and return its artifact identity. */
+export function engineArtifact(dest: string): {
+    path: string;
+    sourceCommit: string;
+    sha256: string;
+} {
+    const checkout = join(engineRoot, engineSourceCommit);
     if (!existsSync(join(checkout, ".git"))) {
         rmSync(checkout, { recursive: true, force: true });
         mkdirSync(engineRoot, { recursive: true });
-        run(
-            ["git", "clone", "--quiet", "--depth", "1", "--branch", engineTag, REPO, checkout],
-            root,
-        );
+        run(["git", "clone", "--quiet", REPO, checkout], root);
     }
+    run(["git", "checkout", "--quiet", engineSourceCommit], checkout);
     const pkg = enginePackage(checkout);
     mkdirSync(dest, { recursive: true });
-    // `build` compiles the audio WASM and prepack copies in the shipped `examples/`, as a publish does.
-    // The build's later native-host step needs system webview libraries a bench seat may lack; the
-    // tarball ships that crate as source, so only the audio WASM is required here.
-    if (!existsSync(join(checkout, "node_modules"))) run(["bun", "install"], checkout);
+    // A packed artifact is the isolation boundary for the generated app. Build/prepack may produce
+    // shipped bytes, but the identity remains the source commit recorded above.
+    if (!existsSync(join(checkout, "node_modules")))
+        run(["bun", "install", "--frozen-lockfile"], checkout);
     const wasm = ["rust/audio/pkg", "crates/audio/pkg"]
         .map((d) => join(pkg, d, "shallot_audio.wasm"))
         .find(existsSync);
     if (!wasm) {
-        Bun.spawnSync(["bun", "run", "build"], { cwd: checkout, stdout: "pipe", stderr: "pipe" });
-        const built = ["rust/audio/pkg", "crates/audio/pkg"].some((d) =>
-            existsSync(join(pkg, d, "shallot_audio.wasm")),
-        );
-        if (!built) throw new Error(`engine build at ${engineTag} produced no audio WASM`);
+        const build = Bun.spawnSync(["bun", "run", "build"], {
+            cwd: checkout,
+            stdout: "pipe",
+            stderr: "pipe",
+        });
+        if (build.exitCode !== 0) {
+            throw new Error(
+                `engine build at ${engineSourceCommit} failed:\n${build.stderr.toString()}`,
+            );
+        }
     }
-    run(["bun", "pm", "pack", "--destination", dest], pkg);
-    const tgz = readdirSync(dest).find((f) => f.endsWith(".tgz") && !f.startsWith("."));
-    if (!tgz) throw new Error(`no tarball produced in ${dest}`);
-    return join(dest, tgz);
+    run(["bun", "pm", "pack", "--destination", dest, "--quiet"], pkg);
+    const tgz = readdirSync(dest).find((file) => file.endsWith(".tgz") && !file.startsWith("."));
+    if (!tgz) throw new Error(`no Shallot artifact produced in ${dest}`);
+    const path = join(dest, tgz);
+    return { path, sourceCommit: engineSourceCommit, sha256: sha256(path) };
 }
 
-if (import.meta.path === Bun.main) console.log(engineTarball(join(engineRoot, "pack")));
+/** Compatibility name for the setup entrypoint; callers still receive the full artifact identity. */
+export function engineTarball(dest: string): string {
+    return engineArtifact(dest).path;
+}
+
+if (import.meta.path === Bun.main)
+    console.log(JSON.stringify(engineArtifact(join(engineRoot, "pack"))));
